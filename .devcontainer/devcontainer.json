@@ -4,9 +4,7 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
-
-  // Runs once after the container is created.
-  "postCreateCommand": "dart --version && (cd my_datapack && dart pub get) && dart pub global activate objd_cli",
+  "postCreateCommand": "dart --version && if [ -f my_datapack/pubspec.yaml ]; then (cd my_datapack && dart pub get); fi; dart pub global activate objd_cli || true",
 
   "customizations": {
     "vscode": {
