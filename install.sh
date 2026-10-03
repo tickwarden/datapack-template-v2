@@ -7,7 +7,7 @@ export NEEDRESTART_MODE=a
 
 # Project Parameters
 PROJECT_DIR="${1:-my_datapack}"
-DATAPACK_NAME="${2:-Example Pack}"
+DATAPACK_NAME="${2:-Template Pack}"
 NAMESPACE="${3:-example}"
 MINECRAFT_VERSION="${4:-21}"
 

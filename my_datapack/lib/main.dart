@@ -3,7 +3,7 @@ import 'package:objd/core.dart';
 void main(List<String> args) {
   createProject(
     DataPack(
-      name: 'Example Pack',
+      name: 'Template Pack',
       main: File(
         'main',
         child: ForMain(),
@@ -21,7 +21,7 @@ void main(List<String> args) {
 class ForLoad extends Widget {
   @override
   Widget generate(Context context) {
-    return Log('Example Pack loaded successfully!');
+    return Log('Template Pack loaded successfully!');
   }
 }
 
