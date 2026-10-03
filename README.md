@@ -1,7 +1,5 @@
 # datapack-template-v2
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tickwarden/datapack-template-v2)
-
 A minimal [objD](https://pub.dev/packages/objd) template for writing Minecraft: Java Edition data packs in Dart instead of hand-written `.mcfunction` files. Works out of the box in GitHub Codespaces.
 
 ## Repository layout
@@ -79,13 +77,13 @@ chmod +x install.sh
 
 | Argument | Default | Notes |
 | --- | --- | --- |
-| `PROJECT_DIR` | `my_datapack` | Must be a valid Dart package name (`[a-z][a-z0-9_]*`). Must not exist yet. |
+| `PROJECT_DIR` | `new_datapack` | Must be a valid Dart package name (`[a-z][a-z0-9_]*`). Must not exist yet. |
 | `DATAPACK_NAME` | `Template Pack` | Used for `Project.name` and the load message. |
 | `NAMESPACE` | `example` | Lowercase letters, digits, `_`, `.`, `-`. |
 | `MINECRAFT_VERSION` | `21` | Accepts decimals such as `20.4`. |
 | `PACK_FORMAT` | `48` | `pack_format` for 1.21 / 1.21.1. |
 
-The script installs the Dart SDK if it is missing, activates `objd_cli`, creates the project and runs `dart pub get`. Because the default `PROJECT_DIR` is `my_datapack`, running it without arguments in this repository fails with "already exists". Pass a different directory name to scaffold a second project.
+The script installs the Dart SDK only if it is missing (inside the dev container it already is), activates `objd_cli`, creates the project, runs `dart pub get` and finishes with a test build. The default directory is `new_datapack` because `my_datapack/` already exists in this repository.
 
 ## Installing the data pack in Minecraft
 
