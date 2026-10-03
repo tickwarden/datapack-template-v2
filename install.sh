@@ -87,11 +87,11 @@ import 'package:objd/core.dart';
 void main(List<String> args) {
   createProject(
     Project(
-      name: '$DART_NAME',
-      version: $MINECRAFT_VERSION,
-      packFormat: $PACK_FORMAT,
+      name: 'Template Pack',
+      version: 21,
+      packFormat: 48,
       generate: Pack(
-        name: '$NAMESPACE',
+        name: 'example',
         load: File(
           'load',
           child: ForLoad(),
@@ -109,7 +109,7 @@ void main(List<String> args) {
 class ForLoad extends Widget {
   @override
   Widget generate(Context context) {
-    return Log('$DART_NAME loaded successfully!');
+    return Log('Template Pack loaded successfully!');
   }
 }
 
@@ -119,6 +119,7 @@ class ForMain extends Widget {
     return Comment('Commands executing every tick (1/20s)');
   }
 }
+
 EOF
 
 echo "==> 4/4: Fetching dependencies (dart pub get)..."
