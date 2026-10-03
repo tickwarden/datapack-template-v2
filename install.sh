@@ -6,7 +6,7 @@ export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 
 # Project Parameters
-PROJECT_DIR="${1:-new_datapack}"   # my_datapack/ already exists in this repo
+PROJECT_DIR="${1:-my_datapack}"   # my_datapack/ already exists in this repo
 DATAPACK_NAME="${2:-Template Pack}"
 NAMESPACE="${3:-example}"
 MINECRAFT_VERSION="${4:-21}"
