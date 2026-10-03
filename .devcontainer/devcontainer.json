@@ -1,0 +1,25 @@
+{
+  "name": "objD Datapack Template",
+
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+
+  // Runs once after the container is created.
+  "postCreateCommand": "dart --version && (cd my_datapack && dart pub get) && dart pub global activate objd_cli",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Dart-Code.dart-code"
+      ],
+      "settings": {
+        "dart.lineLength": 80,
+        "editor.formatOnSave": true,
+        "[dart]": {
+          "editor.defaultFormatter": "Dart-Code.dart-code"
+        }
+      }
+    }
+  }
+}
