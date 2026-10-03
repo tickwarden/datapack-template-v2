@@ -1,5 +1,7 @@
 # datapack-template-v2
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tickwarden/datapack-template-v2)
+
 A minimal [objD](https://pub.dev/packages/objd) template for writing Minecraft: Java Edition data packs in Dart instead of hand-written `.mcfunction` files. Works out of the box in GitHub Codespaces.
 
 ## Repository layout
