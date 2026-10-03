@@ -6,7 +6,7 @@
       "type": "shell",
       "command": "dart run build_runner watch --delete-conflicting-outputs",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}/my_datapack"
       },
       "group": {
         "kind": "build",
