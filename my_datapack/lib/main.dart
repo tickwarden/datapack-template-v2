@@ -1,6 +1,5 @@
 import 'package:objd/core.dart';
 
-// build_runner'ın bu dosyayı tarayıp çıktı üretebilmesi için:
 @Packs()
 final List<Pack> mainPacks = [
   Pack(
@@ -19,13 +18,13 @@ final List<Pack> mainPacks = [
 class ForLoad extends Widget {
   @override
   Widget generate(Context context) {
-    return Log('Datapack loaded!');
+    return Log('Datapack yuklendi!');
   }
 }
 
 class ForMain extends Widget {
   @override
   Widget generate(Context context) {
-    return Comment('Tick commands');
+    return Comment('Tick komutlari');
   }
 }
