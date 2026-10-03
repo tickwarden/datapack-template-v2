@@ -1,33 +1,31 @@
 import 'package:objd/core.dart';
 
-void main(List<String> args) {
-  createProject(
-    DataPack(
-      name: 'Template Pack',
-      main: File(
-        'main',
-        child: ForMain(),
-      ),
-      load: File(
-        'load',
-        child: ForLoad(),
-      ),
-      version: 21,
+// build_runner'ın bu dosyayı tarayıp çıktı üretebilmesi için:
+@Packs()
+final List<Pack> mainPacks = [
+  Pack(
+    name: 'example',
+    main: File(
+      'main',
+      child: ForMain(),
     ),
-    args,
-  );
-}
+    load: File(
+      'load',
+      child: ForLoad(),
+    ),
+  ),
+];
 
 class ForLoad extends Widget {
   @override
   Widget generate(Context context) {
-    return Log('Template Pack loaded successfully!');
+    return Log('Datapack loaded!');
   }
 }
 
 class ForMain extends Widget {
   @override
   Widget generate(Context context) {
-    return Comment('Commands executing every tick (1/20s)');
+    return Comment('Tick commands');
   }
 }
