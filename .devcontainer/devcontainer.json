@@ -1,0 +1,26 @@
+{
+  "name": "objD Datapack Template",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers-community/features/dart-sdk": { "version": "latest" }
+  },
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/usr/lib/dart/bin:/home/vscode/.pub-cache/bin"
+  },
+  "postCreateCommand": "export PATH=\"$PATH:/usr/lib/dart/bin:$HOME/.pub-cache/bin\" && dart --version && (cd my_datapack && dart pub get) && dart pub global activate objd_cli",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Dart-Code.dart-code"
+      ],
+      "settings": {
+        "dart.lineLength": 80,
+        "editor.formatOnSave": true,
+        "[dart]": {
+          "editor.defaultFormatter": "Dart-Code.dart-code"
+        }
+      }
+    }
+  }
+}
