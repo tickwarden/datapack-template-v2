@@ -2,17 +2,21 @@ import 'package:objd/core.dart';
 
 void main(List<String> args) {
   createProject(
-    DataPack(
+    Project(
       name: 'Template Pack',
-      main: File(
-        'main',
-        child: ForMain(),
-      ),
-      load: File(
-        'load',
-        child: ForLoad(),
-      ),
       version: 21,
+      packFormat: 48,
+      generate: Pack(
+        name: 'example',
+        load: File(
+          'load',
+          child: ForLoad(),
+        ),
+        main: File(
+          'main',
+          child: ForMain(),
+        ),
+      ),
     ),
     args,
   );
