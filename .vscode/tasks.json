@@ -4,7 +4,10 @@
     {
       "label": "objD Watch",
       "type": "shell",
-      "command": "cd ../ny_datapack && dart run build_runner watch --delete-conflicting-outputs",
+      "command": "dart run build_runner watch --delete-conflicting-outputs",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": {
         "kind": "build",
         "isDefault": true
@@ -12,7 +15,8 @@
       "presentation": {
         "reveal": "always",
         "panel": "dedicated"
-      }
+      },
+      "problemMatcher": []
     }
   ]
 }
