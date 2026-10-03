@@ -12,7 +12,7 @@ NAMESPACE="${3:-example}"
 MINECRAFT_VERSION="${4:-19}"
 TEMPLATE="${5:-basic}"
 
-echo "==> 1/4: Installing Dart SDK..."
+echo "==> 1/5: Installing Dart SDK..."
 
 sudo apt-get update -qq
 sudo apt-get install -y -qq apt-transport-https wget gnupg curl > /dev/null
@@ -35,11 +35,11 @@ fi
 echo "==> Dart Version: $(dart --version 2>&1)"
 
 # 3. Global Activation of objD CLI (Corrected package name: objd_cli)
-echo "==> 2/4: Activating objd_cli..."
+echo "==> 2/5: Activating objd_cli..."
 dart pub global activate objd_cli > /dev/null
 
 # 4. Project Creation
-echo "==> 3/4: Creating project '$PROJECT_DIR'..."
+echo "==> 3/5: Creating project '$PROJECT_DIR'..."
 if [ -d "$PROJECT_DIR" ]; then
     echo "Error: Directory '$PROJECT_DIR' already exists!"
     exit 1
@@ -53,10 +53,14 @@ objd new "$PROJECT_DIR" \
 dart pub global run objd_cli new "$PROJECT_DIR"
 
 # 5. Fetching Dependencies
-echo "==> 4/4: Fetching project dependencies..."
+echo "==> 4/5: Fetching project dependencies..."
 cd "$PROJECT_DIR"
 dart pub get
 
 echo -e "\n✅ Setup completed!"
 echo "Navigate to the project directory and start build_runner:"
 echo "cd $PROJECT_DIR && dart run build_runner watch"
+
+# 6. Start Watcher
+echo "==> 5/5: Starting Watcher..."
+dart run build_runner watch --delete-conflicting-outputs
