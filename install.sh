@@ -47,7 +47,7 @@ mkdir -p "$PROJECT_DIR/lib"
 mkdir -p "$PROJECT_DIR/.vscode"
 cd "$PROJECT_DIR"
 
-# Generate pubspec.yaml (including build_runner and objd dependencies)
+# Generate pubspec.yaml (using objd ^0.4.7)
 cat <<EOF > pubspec.yaml
 name: $PROJECT_DIR
 description: A new objD datapack project.
@@ -57,7 +57,7 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  objd: ^0.5.0
+  objd: ^0.4.7
 
 dev_dependencies:
   build_runner: ^2.4.0
