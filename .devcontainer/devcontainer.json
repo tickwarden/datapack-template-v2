@@ -1,10 +1,9 @@
 {
   "name": "objD Datapack Template",
-
   "build": {
     "dockerfile": "Dockerfile"
   },
-  "postCreateCommand": "dart --version && if [ -f my_datapack/pubspec.yaml ]; then (cd my_datapack && dart pub get); fi; dart pub global activate objd_cli || true",
+  "postCreateCommand": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git remote get-url origin >/dev/null 2>&1 || git remote add origin https://github.com/tickwarden/datapack-template-v2.git; git config --global push.autoSetupRemote true; fi; dart --version && if [ -f my_datapack/pubspec.yaml ]; then (cd my_datapack && dart pub get); fi; dart pub global activate objd_cli || true",
 
   "customizations": {
     "vscode": {
