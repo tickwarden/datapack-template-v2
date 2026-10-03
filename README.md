@@ -78,13 +78,13 @@ chmod +x install.sh
 
 | Argument | Default | Notes |
 | --- | --- | --- |
-| `PROJECT_DIR` | `new_datapack` | Must be a valid Dart package name (`[a-z][a-z0-9_]*`). Must not exist yet. |
+| `PROJECT_DIR` | `my_datapack` | Must be a valid Dart package name (`[a-z][a-z0-9_]*`). Must not exist yet. |
 | `DATAPACK_NAME` | `Template Pack` | Used for `Project.name` and the load message. |
 | `NAMESPACE` | `example` | Lowercase letters, digits, `_`, `.`, `-`. |
 | `MINECRAFT_VERSION` | `21` | Accepts decimals such as `20.4`. |
 | `PACK_FORMAT` | `48` | `pack_format` for 1.21 / 1.21.1. |
 
-The script installs the Dart SDK only if it is missing (inside the dev container it already is), activates `objd_cli`, creates the project, runs `dart pub get` and finishes with a test build. The default directory is `new_datapack` because `my_datapack/` already exists in this repository.
+The script installs the Dart SDK only if it is missing (inside the dev container it already is), activates `objd_cli`, creates the project, runs `dart pub get` and finishes with a test build. The default directory is `my_datapack` because `my_datapack/` already exists in this repository.
 
 ## Installing the data pack in Minecraft
 
