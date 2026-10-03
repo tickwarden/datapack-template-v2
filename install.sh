@@ -119,7 +119,6 @@ class ForMain extends Widget {
     return Comment('Commands executing every tick (1/20s)');
   }
 }
-
 EOF
 
 echo "==> 4/4: Fetching dependencies (dart pub get)..."
