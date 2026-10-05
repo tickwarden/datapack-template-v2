@@ -1,12 +1,7 @@
 // ---------------------------------------------------------------------------
-// Template Pack – pure objD (MAXIMUM FEATURE SHOWCASE)
+// Template Pack – pure objD (MAXIMUM FEATURE SHOWCASE) – FIXED
 // Target: Minecraft 1.20.1 (pack_format 15)
 // No objd_gui, no @p, no tellraw menu
-// Covers: Scores, Tags, Conditions, Execute, Data/NBT, Storage, Timeouts,
-//         Timers, Repeat, RandomScore, Raycast, Marker, ArmorStand,
-//         AreaEffectCloud, Display, Interaction, Teams, Trigger, Schedule,
-//         Attributes, Effects, Particles, Bossbar, Advancements, Predicates,
-//         For/Builder, Groups, Comments, PlayerJoin, VersionCheck, etc.
 // ---------------------------------------------------------------------------
 
 import 'package:objd/core.dart';
@@ -14,7 +9,7 @@ import 'package:objd/core.dart';
 const int kPackFormat = 15; // 1.20 – 1.20.1
 const String kNamespace = 'template';
 
-// GUI button IDs (stored in score)
+// GUI button IDs
 const int kGuiGreet = 1;
 const int kGuiReset = 2;
 const int kGuiRandom = 3;
@@ -26,14 +21,14 @@ Project buildProject() => Project(
       name: 'Template Pack',
       version: 20,
       target: './build/',
-      description: 'Ultimate pure objD Template Pack – MC 1.20.1 (Chest GUI + every major feature)',
+      description:
+          'Ultimate pure objD Template Pack – MC 1.20.1 (Chest GUI + major features)',
       packFormat: kPackFormat,
       generate: Pack(
         name: kNamespace,
         load: File('load', child: ForLoad()),
         main: File('main', child: ForMain()),
         files: [
-          // Showcase / utility functions
           File('welcome', child: WelcomeMessage(playerName: 'Player')),
           File('showcase/loops', child: LoopShowcase(count: 5)),
           File('showcase/math', child: ScoreMathShowcase()),
@@ -57,12 +52,13 @@ Project buildProject() => Project(
     );
 
 void main(List<String> args) {
-  Scoreboard.prefix = 'tp_'; // all scoreboards start with tp_
+  Scoreboard.prefix = 'tp_';
   final prj = buildProject();
 
   if (args.contains('--export-zip') || args.contains('--prod')) {
     final files = getAllFiles(prj, args);
-    final out = args.contains('--prod') ? 'Template_Pack.zip' : 'template_pack.zip';
+    final out =
+        args.contains('--prod') ? 'Template_Pack.zip' : 'template_pack.zip';
     saveAsZip(files, out);
     return;
   }
@@ -71,7 +67,7 @@ void main(List<String> args) {
 }
 
 // ---------------------------------------------------------------------------
-// LOAD – runs once on /reload
+// LOAD
 // ---------------------------------------------------------------------------
 class ForLoad extends Widget {
   @override
@@ -88,37 +84,50 @@ class ForLoad extends Widget {
         Scoreboard('random'),
         Scoreboard('ray_dist'),
         Scoreboard('temp'),
-        Scoreboard('trigger_val', type: 'trigger'), // for Trigger
+        Scoreboard.trigger('trigger_val'),
 
         // Teams
-        Team.add('template_red',
-            color: Color.Red,
-            display: TextComponent('Template Red', color: Color.Red),
-            friendlyFire: false,
-            collision: ModifyTeam.never),
-        Team.add('template_blue',
-            color: Color.Blue,
-            display: TextComponent('Template Blue', color: Color.Blue),
-            friendlyFire: false,
-            collision: ModifyTeam.never),
+        Team.add(
+          'template_red',
+          color: Color.Red,
+          display: TextComponent('Template Red', color: Color.Red),
+          friendlyFire: false,
+          collision: ModifyTeam.never,
+        ),
+        Team.add(
+          'template_blue',
+          color: Color.Blue,
+          display: TextComponent('Template Blue', color: Color.Blue),
+          friendlyFire: false,
+          collision: ModifyTeam.never,
+        ),
 
         // Global Storage
-        Storage('data').merge({'initialized': true, 'version': 1, 'message': 'Hello from Storage!'}),
+        Storage('data').merge({
+          'initialized': true,
+          'version': 1,
+          'message': 'Hello from Storage!',
+        }),
 
-        // Bossbar
-        Bossbar('template:main',
-            name: TextComponent('Template Pack', color: Color.Gold, bold: true),
-            color: BossbarColor.yellow,
-            style: BossbarStyle.progress,
-            max: 100,
-            value: 0,
-            visible: true),
+        // Bossbar (correct API)
+        Bossbar('template:main', name: 'Template Pack'),
+        Bossbar('template:main').set(
+          nameTexts: [
+            TextComponent('Template Pack', color: Color.Gold, bold: true),
+          ],
+          color: Color.Yellow,
+          style: 'progress',
+          max: 100,
+          value: 0,
+          visible: true,
+        ),
 
         // Player join / rejoin
         PlayerJoin(
           then: Group(children: [
             Tellraw(Entity.Self(), show: [
-              TextComponent('Welcome to Template Pack!', color: Color.Gold, bold: true),
+              TextComponent('Welcome to Template Pack!',
+                  color: Color.Gold, bold: true),
               TextComponent('\nRun '),
               TextComponent('/function template:setup_gui', color: Color.Aqua),
               TextComponent(' to place the Chest GUI.'),
@@ -126,7 +135,9 @@ class ForLoad extends Widget {
             Title(Entity.Self(),
                 show: [TextComponent('Template Pack', color: Color.Gold)]),
             Title.subtitle(Entity.Self(),
-                show: [TextComponent('Loaded successfully', color: Color.Green)]),
+                show: [
+                  TextComponent('Loaded successfully', color: Color.Green)
+                ]),
           ]),
         ),
         PlayerJoin.rejoin(
@@ -134,20 +145,19 @@ class ForLoad extends Widget {
               show: [TextComponent('Welcome back!', color: Color.Green)]),
         ),
 
-        // Optional version check (nice for multi-version packs)
+        // VersionCheck (correct API)
         VersionCheck(
-          version: 20,
-          then: Log('Running on supported Minecraft version'),
-          orElse: Log('Warning: Unsupported Minecraft version'),
+          1, // current pack version
+          onUpdate: [Log('Thank you for updating the pack!')],
+          onDowndate: [Log('Notice: You installed an older version')],
         ),
 
-        // Start a background timer (every 5 seconds)
+        // Background timer (every 5 seconds)
         Timer(
           'heartbeat',
-          ticks: 100.ticks, // 5 seconds
+          ticks: 100.ticks,
           children: [
             Comment('Heartbeat – runs every 5s'),
-            // You can put light logic here
           ],
         ),
       ],
@@ -156,19 +166,18 @@ class ForLoad extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// MAIN – runs every tick
+// MAIN
 // ---------------------------------------------------------------------------
 class ForMain extends Widget {
   @override
   Widget generate(Context context) {
     final ticks = Score(Entity.Self(), 'counter');
-    final click = Score(Entity.Self(), 'gui_click');
 
     return Group(
       children: [
         Comment('=== MAIN TICK ==='),
 
-        // Simple per-player counter that fires every 10 seconds
+        // Per-player counter every 10 seconds
         Execute.as(
           Entity.All(),
           children: [
@@ -177,38 +186,33 @@ class ForMain extends Widget {
               ticks.matches(200),
               then: [
                 Tellraw(Entity.Self(), show: [
-                  TextComponent('10 seconds passed (counter reset)', color: Color.Aqua),
+                  TextComponent('10 seconds passed (counter reset)',
+                      color: Color.Aqua),
                 ]),
                 ticks.set(0),
-                // Also update bossbar as demo
                 Bossbar('template:main').set(value: 50),
               ],
             ),
           ],
         ),
 
-        // Chest GUI tick logic (detect clicks + refill)
+        // Chest GUI tick
         Execute.at(
           Entity(type: Entities.armor_stand, tags: ['tp_gui']),
           children: [ChestGuiTick()],
         ),
 
-        // Interaction entity click detection (if any exist)
+        // Trigger handling
         Execute.as(
-          Entity(type: Entities.interaction, tags: ['tp_interact']),
-          children: [
-            // onInteract is available on Interaction instances
-            // For demo we just clear the interaction data
-          ],
-        ),
-
-        // Trigger handling example
-        Execute.as(
-          Entity.All(scores: [Score(Entity.Self(), 'trigger_val').matchesRange(Range.from(1))]),
+          Entity.All(
+              scores: [Score(Entity.Self(), 'trigger_val').matchesRange(Range.from(1))]),
           children: [
             Tellraw(Entity.Self(), show: [
               TextComponent('You triggered value: ', color: Color.Yellow),
-              TextComponent.score(Entity.Self(), objective: 'trigger_val'),
+              TextComponent.score(
+                Score(Entity.Self(), 'trigger_val'),
+                color: Color.Aqua,
+              ),
             ]),
             Score(Entity.Self(), 'trigger_val').set(0),
           ],
@@ -219,8 +223,7 @@ class ForMain extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// CHEST GUI (1.20.1 NBT style – id + Count + tag.display)
-// Detects missing button → action → refill every tick
+// CHEST GUI
 // ---------------------------------------------------------------------------
 class ChestGuiTick extends Widget {
   @override
@@ -229,27 +232,34 @@ class ChestGuiTick extends Widget {
 
     return Group(
       children: [
-        Comment('Detect button clicks (item removed from slot)'),
+        Comment('Detect button clicks'),
 
         // Slot 12 – Greet
         If(
-          Condition.not(Condition.data(Data.get(Location.here(), path: 'Items[{Slot:12b}]'))),
+          Condition.not(
+              Condition.data(Data.get(Location.here(), path: 'Items[{Slot:12b}]'))),
           then: [
             Execute.as(Entity.All(distance: Range.to(8)), children: [
-              Title(Entity.Self(), show: [TextComponent('Hello!', color: Color.Yellow)]),
-              Tellraw(Entity.Self(), show: [TextComponent('Greet button clicked!', color: Color.Green)]),
+              Title(Entity.Self(),
+                  show: [TextComponent('Hello!', color: Color.Yellow)]),
+              Tellraw(Entity.Self(), show: [
+                TextComponent('Greet button clicked!', color: Color.Green)
+              ]),
               click.set(kGuiGreet),
             ]),
           ],
         ),
 
-        // Slot 14 – Reset counter
+        // Slot 14 – Reset
         If(
-          Condition.not(Condition.data(Data.get(Location.here(), path: 'Items[{Slot:14b}]'))),
+          Condition.not(
+              Condition.data(Data.get(Location.here(), path: 'Items[{Slot:14b}]'))),
           then: [
             Execute.as(Entity.All(distance: Range.to(8)), children: [
               Score(Entity.Self(), 'counter').set(0),
-              Tellraw(Entity.Self(), show: [TextComponent('Counter reset!', color: Color.Aqua)]),
+              Tellraw(Entity.Self(), show: [
+                TextComponent('Counter reset!', color: Color.Aqua)
+              ]),
               click.set(kGuiReset),
             ]),
           ],
@@ -257,55 +267,58 @@ class ChestGuiTick extends Widget {
 
         // Slot 10 – Random
         If(
-          Condition.not(Condition.data(Data.get(Location.here(), path: 'Items[{Slot:10b}]'))),
+          Condition.not(
+              Condition.data(Data.get(Location.here(), path: 'Items[{Slot:10b}]'))),
           then: [
             Execute.as(Entity.All(distance: Range.to(8)), children: [
-              File.execute('showcase/random', force: true),
+              File.execute('showcase/random', create: false),
               click.set(kGuiRandom),
             ]),
           ],
         ),
 
-        // Slot 16 – Raycast demo
+        // Slot 16 – Raycast
         If(
-          Condition.not(Condition.data(Data.get(Location.here(), path: 'Items[{Slot:16b}]'))),
+          Condition.not(
+              Condition.data(Data.get(Location.here(), path: 'Items[{Slot:16b}]'))),
           then: [
             Execute.as(Entity.All(distance: Range.to(8)), children: [
-              File.execute('showcase/raycast', force: true),
+              File.execute('showcase/raycast', create: false),
               click.set(kGuiRaycast),
             ]),
           ],
         ),
 
-        Comment('Refill entire chest GUI every tick (1.20.1 item NBT)'),
+        Comment('Refill chest GUI every tick'),
         Data.merge(
           Location.here(),
           nbt: {
             'Items': [
-              // Title – Slot 4
               {
                 'Slot': 4,
                 'id': 'minecraft:oak_sign',
                 'Count': 1,
                 'tag': {
                   'display': {
-                    'Name': '{"text":"Template Pack Menu","color":"gold","bold":true}',
+                    'Name':
+                        '{"text":"Template Pack Menu","color":"gold","bold":true}',
                   },
                 },
               },
-              // Random – Slot 10
               {
                 'Slot': 10,
                 'id': 'minecraft:diamond',
                 'Count': 1,
                 'tag': {
                   'display': {
-                    'Name': '{"text":"Random Score","color":"aqua","bold":true}',
-                    'Lore': ['{"text":"Gives you a random number","color":"gray"}'],
+                    'Name':
+                        '{"text":"Random Score","color":"aqua","bold":true}',
+                    'Lore': [
+                      '{"text":"Gives you a random number","color":"gray"}'
+                    ],
                   },
                 },
               },
-              // Greet – Slot 12
               {
                 'Slot': 12,
                 'id': 'minecraft:emerald',
@@ -313,39 +326,44 @@ class ChestGuiTick extends Widget {
                 'tag': {
                   'display': {
                     'Name': '{"text":"Greet","color":"green","bold":true}',
-                    'Lore': ['{"text":"Click to say Hello!","color":"gray"}'],
+                    'Lore': [
+                      '{"text":"Click to say Hello!","color":"gray"}'
+                    ],
                   },
                 },
               },
-              // Reset – Slot 14
               {
                 'Slot': 14,
                 'id': 'minecraft:redstone',
                 'Count': 1,
                 'tag': {
                   'display': {
-                    'Name': '{"text":"Reset counter","color":"red","bold":true}',
-                    'Lore': ['{"text":"Sets your counter to 0","color":"gray"}'],
+                    'Name':
+                        '{"text":"Reset counter","color":"red","bold":true}',
+                    'Lore': [
+                      '{"text":"Sets your counter to 0","color":"gray"}'
+                    ],
                   },
                 },
               },
-              // Raycast – Slot 16
               {
                 'Slot': 16,
                 'id': 'minecraft:ender_pearl',
                 'Count': 1,
                 'tag': {
                   'display': {
-                    'Name': '{"text":"Raycast Demo","color":"light_purple","bold":true}',
-                    'Lore': ['{"text":"Shoots a ray and places a block","color":"gray"}'],
+                    'Name':
+                        '{"text":"Raycast Demo","color":"light_purple","bold":true}',
+                    'Lore': [
+                      '{"text":"Shoots a ray and places a block","color":"gray"}'
+                    ],
                   },
                 },
               },
-              // Gray glass panes – fill everything else
               for (final s in [
-                0, 1, 2, 3, 5, 6, 7, 8, // row 1
-                9, 11, 13, 15, 17, // row 2 (except buttons)
-                18, 19, 20, 21, 22, 23, 24, 25, 26 // row 3
+                0, 1, 2, 3, 5, 6, 7, 8,
+                9, 11, 13, 15, 17,
+                18, 19, 20, 21, 22, 23, 24, 25, 26
               ])
                 {
                   'Slot': s,
@@ -364,14 +382,13 @@ class ChestGuiTick extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// SETUP GUI – /function template:setup_gui
+// SETUP
 // ---------------------------------------------------------------------------
 class SetupChestGui extends Widget {
   @override
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Place invisible marker armor stand + chest'),
         ArmorStand.staticMarker(
           Location.here(),
           tags: ['tp_gui'],
@@ -382,21 +399,22 @@ class SetupChestGui extends Widget {
           Blocks.chest,
           location: Location.here(),
           nbt: {
-            'CustomName': '{"text":"Template Pack Menu","color":"gold","bold":true}',
+            'CustomName':
+                '{"text":"Template Pack Menu","color":"gold","bold":true}',
           },
         ),
         Tellraw(Entity.Self(), show: [
-          TextComponent('Chest GUI placed! Open the chest and click the buttons.', color: Color.Green),
+          TextComponent(
+              'Chest GUI placed! Open the chest and click the buttons.',
+              color: Color.Green),
         ]),
-        Particle(Particles.happy_villager, location: Location.here(), count: 20),
+        Particle(Particles.happy_villager,
+            location: Location.here(), count: 20),
       ],
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// SETUP MARKER – demonstrates Marker entity (1.17+)
-// ---------------------------------------------------------------------------
 class SetupMarker extends Widget {
   @override
   Widget generate(Context context) {
@@ -408,7 +426,8 @@ class SetupMarker extends Widget {
           data: {'purpose': 'location_storage', 'id': 42},
         ),
         Tellraw(Entity.Self(), show: [
-          TextComponent('Marker entity placed (serverside only).', color: Color.Aqua),
+          TextComponent('Marker entity placed (serverside only).',
+              color: Color.Aqua),
         ]),
       ],
     );
@@ -418,7 +437,6 @@ class SetupMarker extends Widget {
 // ---------------------------------------------------------------------------
 // SHOWCASE WIDGETS
 // ---------------------------------------------------------------------------
-
 class WelcomeMessage extends Widget {
   final String playerName;
   WelcomeMessage({required this.playerName});
@@ -450,9 +468,9 @@ class LoopShowcase extends Widget {
         For(
           from: 0,
           to: count,
-          create: (i) => Tellraw(Entity.All(), show: [TextComponent('Loop step $i')]),
+          create: (i) => Tellraw(Entity.All(),
+              show: [TextComponent('Loop step $i')]),
         ),
-        Comment('Builder for calculations'),
         Builder((ctx) {
           final doubled = count * 2;
           return Log('Total steps x2 = $doubled');
@@ -473,13 +491,14 @@ class ScoreMathShowcase extends Widget {
         Comment('Score arithmetic & comparisons'),
         a.set(10),
         b.set(3),
-        a.addScore(b), // a = 13
-        a.multiplyByScore(b), // a = 39
+        a.addScore(b),
+        a.multiplyByScore(b),
         a.subtract(5),
         a.divideByScore(b),
         If(a > b, then: [Log('a > b')]),
         If.not(a.matches(0), then: [Log('a is not zero')]),
-        If(a.matchesRange(Range(10, 50)), then: [Log('a is between 10 and 50')]),
+        If(a.matchesRange(Range(10, 50)),
+            then: [Log('a is between 10 and 50')]),
       ],
     );
   }
@@ -490,7 +509,7 @@ class RandomShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('RandomScore using UUID of AreaEffectCloud'),
+        Comment('RandomScore'),
         RandomScore(
           Entity.Self(),
           from: 1,
@@ -499,7 +518,10 @@ class RandomShowcase extends Widget {
         ),
         Tellraw(Entity.Self(), show: [
           TextComponent('Your random number: ', color: Color.Aqua),
-          TextComponent.score(Entity.Self(), objective: 'random', color: Color.Yellow),
+          TextComponent.score(
+            Score(Entity.Self(), 'random'),
+            color: Color.Yellow,
+          ),
         ]),
       ],
     );
@@ -515,10 +537,12 @@ class StorageShowcase extends Widget {
       children: [
         Comment('Global Storage demo'),
         storage.merge({'last_user': 'Player', 'clicks': 1}),
-        storage.copyScore('clicks', score: Score(Entity.Self(), 'counter')),
+        storage.copyScore('clicks',
+            score: Score(Entity.Self(), 'counter')),
         Tellraw(Entity.Self(), show: [
           TextComponent('Storage message: ', color: Color.Gray),
-          TextComponent.storageNbt('template:data', path: 'message', interpret: true),
+          TextComponent.storageNbt('template:data',
+              path: 'message', interpret: true),
         ]),
       ],
     );
@@ -530,7 +554,7 @@ class RaycastShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Powerful Raycast widget'),
+        Comment('Raycast'),
         Raycast(
           Entity.Self(),
           max: 20,
@@ -538,9 +562,11 @@ class RaycastShowcase extends Widget {
           through: Blocks.air,
           onhit: [
             SetBlock(Blocks.gold_block, location: Location.here()),
-            Particle(Particles.flame, location: Location.here(), count: 10),
+            Particle(Particles.flame,
+                location: Location.here(), count: 10),
             Tellraw(Entity.Self(), show: [
-              TextComponent('Ray hit! Gold block placed.', color: Color.Gold),
+              TextComponent('Ray hit! Gold block placed.',
+                  color: Color.Gold),
             ]),
           ],
         ),
@@ -554,7 +580,7 @@ class TeamShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Team join example'),
+        Comment('Team join'),
         Entity.Self().joinTeam('template_red'),
         Tellraw(Entity.Self(), show: [
           TextComponent('You joined ', color: Color.White),
@@ -571,20 +597,21 @@ class EffectShowcase extends Widget {
     return Group(
       children: [
         Effect(
-          Effects.speed,
+          EffectType.speed,
           entity: Entity.Self(),
           duration: 10.seconds,
           amplifier: 2,
           showParticles: false,
         ),
         Effect(
-          Effects.jump_boost,
+          EffectType.jump_boost,
           entity: Entity.Self(),
           duration: 10.seconds,
           amplifier: 1,
         ),
         Tellraw(Entity.Self(), show: [
-          TextComponent('Speed II + Jump Boost applied for 10s', color: Color.Green),
+          TextComponent('Speed II + Jump Boost applied for 10s',
+              color: Color.Green),
         ]),
       ],
     );
@@ -618,20 +645,19 @@ class AttributeShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Temporary attribute modifiers'),
-        Attribute(
+        Comment('Attribute modifier'),
+        Attribute.add(
           Entity.Self(),
-          Attributes.generic_movement_speed,
-          modifier: AttributeModifier(
-            'template_speed',
-            amount: 0.1,
-            operation: AttributeOperation.add,
-          ),
+          Attributes.movement_speed,
+          uuid: 'template-speed-boost',
+          value: 0.1,
+          name: 'template_speed',
+          modifyType: AttributeModifier.add,
         ),
         Tellraw(Entity.Self(), show: [
-          TextComponent('Movement speed increased temporarily', color: Color.Yellow),
+          TextComponent('Movement speed increased temporarily',
+              color: Color.Yellow),
         ]),
-        // Note: you should remove the modifier later with Attribute.remove
       ],
     );
   }
@@ -642,10 +668,11 @@ class DisplayShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('1.19.4+ Display entities'),
+        Comment('Display entities'),
         Display.text(
           Location.rel(y: 2),
-          TextComponent('Floating Text!', color: Color.LightPurple, bold: true),
+          TextComponent('Floating Text!',
+              color: Color.LightPurple, bold: true),
           billboardType: BillboardType.center,
           transformation: Transformation.scaleAll(1.5),
           tags: ['tp_display'],
@@ -657,7 +684,8 @@ class DisplayShowcase extends Widget {
           tags: ['tp_display'],
         ),
         Tellraw(Entity.Self(), show: [
-          TextComponent('Display entities spawned above you', color: Color.LightPurple),
+          TextComponent('Display entities spawned above you',
+              color: Color.LightPurple),
         ]),
       ],
     );
@@ -669,7 +697,7 @@ class InteractionShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Interaction entity (click detection)'),
+        Comment('Interaction entity'),
         Interaction(
           Location.here(),
           width: 1.0,
@@ -678,7 +706,9 @@ class InteractionShowcase extends Widget {
           tags: ['tp_interact'],
         ),
         Tellraw(Entity.Self(), show: [
-          TextComponent('Interaction entity placed. Left/Right click it!', color: Color.Aqua),
+          TextComponent(
+              'Interaction entity placed. Left/Right click it!',
+              color: Color.Aqua),
         ]),
       ],
     );
@@ -705,18 +735,21 @@ class ScheduleShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Schedule a function in the future'),
+        Comment('Timeout / Schedule'),
         Timeout(
           'delayed_hello',
-          ticks: 40.ticks, // 2 seconds
+          ticks: 40.ticks,
           children: [
             Tellraw(Entity.All(), show: [
-              TextComponent('This message was delayed by 2 seconds!', color: Color.Green),
+              TextComponent(
+                  'This message was delayed by 2 seconds!',
+                  color: Color.Green),
             ]),
           ],
         ),
         Tellraw(Entity.Self(), show: [
-          TextComponent('Scheduled a message in 2 seconds...', color: Color.Gray),
+          TextComponent('Scheduled a message in 2 seconds...',
+              color: Color.Gray),
         ]),
       ],
     );
@@ -728,7 +761,7 @@ class RepeatShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Repeat an action multiple times with delay'),
+        Comment('Repeat'),
         Repeat(
           'countdown',
           to: 5,
@@ -743,30 +776,34 @@ class RepeatShowcase extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// UNINSTALL – clean up everything
+// UNINSTALL
 // ---------------------------------------------------------------------------
 class Uninstall extends Widget {
   @override
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Remove all scoreboards, teams, entities, bossbars'),
-        Scoreboard('config').remove(),
-        Scoreboard('counter').remove(),
-        Scoreboard('gui_click').remove(),
-        Scoreboard('random').remove(),
-        Scoreboard('ray_dist').remove(),
-        Scoreboard('temp').remove(),
-        Scoreboard('trigger_val').remove(),
-        Team.remove('template_red'),
-        Team.remove('template_blue'),
+        Comment('Clean up everything'),
+        Scoreboard.remove('config'),
+        Scoreboard.remove('counter'),
+        Scoreboard.remove('gui_click'),
+        Scoreboard.remove('random'),
+        Scoreboard.remove('ray_dist'),
+        Scoreboard.remove('temp'),
+        Scoreboard.remove('trigger_val'),
+        Team.empty('template_red'),
+        Team.empty('template_blue'),
+        // Team.remove does not exist → use Command
+        Command('team remove template_red'),
+        Command('team remove template_blue'),
         Bossbar('template:main').remove(),
         Kill(Entity(tags: ['tp_gui'])),
         Kill(Entity(tags: ['tp_marker'])),
         Kill(Entity(tags: ['tp_display'])),
         Kill(Entity(tags: ['tp_interact'])),
         Tellraw(Entity.All(), show: [
-          TextComponent('Template Pack fully uninstalled.', color: Color.Red),
+          TextComponent('Template Pack fully uninstalled.',
+              color: Color.Red),
         ]),
       ],
     );
