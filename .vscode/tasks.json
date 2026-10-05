@@ -1,10 +1,24 @@
+// AI DISCLOSURE: Merged with AI assistance (Claude, Anthropic), Oct 2026.
+// The "objD Watch" task is the user's own; Pub Get, Lint and Zip Datapack
+// were added by AI. Not tested in VS Code by the AI. Review before committing.
 {
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Pub Get",
+      "type": "shell",
+      "command": "dart pub get",
+      "options": {
+        "cwd": "${workspaceFolder}/my_datapack"
+      },
+      "problemMatcher": []
+    },
+    {
+      // Ctrl+Shift+B -> default build task
       "label": "objD Watch",
       "type": "shell",
       "command": "dart run lib/main.dart",
+      "dependsOn": ["Pub Get"],
       "options": {
         "cwd": "${workspaceFolder}/my_datapack"
       },
@@ -16,6 +30,54 @@
         "reveal": "always",
         "panel": "dedicated"
       },
+      "problemMatcher": {
+        "owner": "dart-build",
+        "fileLocation": ["relative", "${workspaceFolder}/my_datapack"],
+        "pattern": {
+          "regexp": "^(.+?):(\\d+):(\\d+):\\s+(Error|Warning):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    },
+    {
+      // Bind Ctrl+Shift+L to this task via keybindings.json (see reply)
+      "label": "Lint",
+      "type": "shell",
+      "command": "dart analyze",
+      "dependsOn": ["Pub Get"],
+      "options": {
+        "cwd": "${workspaceFolder}/my_datapack"
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": {
+        "owner": "dart-analyze",
+        "fileLocation": ["relative", "${workspaceFolder}/my_datapack"],
+        "pattern": {
+          "regexp": "^\\s*(error|warning|info)\\s+-\\s+(.+?):(\\d+):(\\d+)\\s+-\\s+(.+?)(?:\\s+-\\s+(\\S+))?$",
+          "severity": 1,
+          "file": 2,
+          "line": 3,
+          "column": 4,
+          "message": 5,
+          "code": 6
+        }
+      }
+    },
+    {
+      // Optional: zip the generated datapack (quoted path handles the space)
+      "label": "Zip Datapack",
+      "type": "shell",
+      "command": "cd \"${workspaceFolder}/my_datapack/Template Pack\" && zip -r \"../template.zip\" .",
+      "dependsOn": ["objD Watch"],
       "problemMatcher": []
     }
   ]
