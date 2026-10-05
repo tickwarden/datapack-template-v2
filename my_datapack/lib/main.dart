@@ -1,23 +1,21 @@
 // ---------------------------------------------------------------------------
-// AI DISCLOSURE: This file was generated/extended with AI assistance
-// based on the objD 0.4.7 + objd_gui 0.2.0 API docs.
-// It has NOT been compiled or tested. Run `dart analyze` before committing.
-// ---------------------------------------------------------------------------
-// pubspec.yaml dependencies:
-//   objd: ^0.4.7
-//   objd_gui: ^0.2.0
+// Template Pack – pure objD
+// Target: Minecraft 1.20.1 (pack_format 15)
+// No objd_gui, no @p, no tellraw menu
 // ---------------------------------------------------------------------------
 import 'package:objd/core.dart';
-import 'package:objd_gui/gui.dart';
 
-const int kPackFormat = 48; // Minecraft 1.21
+const int kPackFormat = 15; // 1.20 – 1.20.1
 const String kNamespace = 'example';
+
+const int kGuiGreet = 1;
+const int kGuiReset = 2;
 
 Project buildProject() => Project(
       name: 'Template Pack',
-      version: 21,
-      target: './',
-      description: 'Template Pack - objD feature showcase (Chest GUI)',
+      version: 20,
+      target: './build/',
+      description: 'Template Pack - objD showcase (MC 1.20.1, Chest GUI)',
       packFormat: kPackFormat,
       generate: Pack(
         name: kNamespace,
@@ -27,7 +25,6 @@ Project buildProject() => Project(
           File('welcome', child: WelcomeMessage(playerName: 'Player')),
           File('showcase/loops', child: LoopShowcase(count: 5)),
           File('showcase/math', child: ScoreMathShowcase()),
-          // Chest GUI'yi mevcut konumda kurar
           File('setup_gui', child: SetupChestGui()),
         ],
       ),
@@ -36,8 +33,11 @@ Project buildProject() => Project(
 void main(List<String> args) {
   Scoreboard.prefix = 'tp_';
   final prj = buildProject();
-  if (args.contains('--export-zip')) {
-    saveAsZip(getAllFiles(prj, args), 'template_pack.zip');
+  if (args.contains('--export-zip') || args.contains('--prod')) {
+    final files = getAllFiles(prj, args);
+    final out =
+        args.contains('--prod') ? 'Template Pack.zip' : 'template_pack.zip';
+    saveAsZip(files, out);
     return;
   }
   createProject(prj, args);
@@ -54,6 +54,7 @@ class ForLoad extends Widget {
         Log('Template Pack loaded successfully!'),
         Scoreboard('config'),
         Scoreboard('counter'),
+        Scoreboard('gui_click'),
         PlayerJoin(
           then: Tellraw(
             Entity.Self(),
@@ -72,7 +73,7 @@ class ForLoad extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// MAIN (her tick)
+// MAIN (every tick)
 // ---------------------------------------------------------------------------
 class ForMain extends Widget {
   @override
@@ -80,9 +81,9 @@ class ForMain extends Widget {
     final ticks = Score(Entity.Self(), 'counter');
     return Group(
       children: [
-        Comment('Commands executing every tick (1/20s)'),
+        Comment('Tick logic'),
         Execute.as(
-          Entity.All(), // @a — @p yok
+          Entity.All(),
           children: [
             ticks.add(1),
             If(
@@ -99,14 +100,11 @@ class ForMain extends Widget {
             ),
           ],
         ),
-        // Chest GUI: marker etiketli armor stand konumlarında çalışır
+        // Chest GUI at every armor_stand tagged tp_gui
         Execute.at(
-          Entity(
-            type: Entities.armor_stand,
-            tags: ['tp_gui'],
-          ),
+          Entity(type: Entities.armor_stand, tags: ['tp_gui']),
           children: [
-            TemplateChestGui(),
+            ChestGuiTick(),
           ],
         ),
       ],
@@ -115,54 +113,49 @@ class ForMain extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// CHEST GUI (objd_gui)
+// CHEST GUI (1.20.1 NBT: id + Count + tag.display – no components)
+// Detect click = button item missing from slot, then refill every tick
 // ---------------------------------------------------------------------------
-class TemplateChestGui extends Widget {
+class ChestGuiTick extends Widget {
   @override
   Widget generate(Context context) {
-    return GuiModule.chest(
-      Location.here(),
-      pages: [
-        GuiPage(
-          [
-            // Başlık / bilgilendirme satırı
-            Placeholder(
-              slot: Slot.chest(1, 5),
-              item: Item(
-                Items.oak_sign,
-                name: TextComponent('Template Pack Menu',
-                    color: Color.Gold, bold: true),
-              ),
+    final click = Score(Entity.Self(), 'gui_click');
+
+    // container slots: row2 col4 = 12, row2 col6 = 14
+    return Group(
+      children: [
+        Comment('Detect button clicks (item removed from slot)'),
+        // Greet (Slot 12) missing?
+        If(
+          Condition.not(
+            Condition.data(
+              Data.get(Location.here(), path: 'Items[{Slot:12b}]'),
             ),
-            // Greet butonu
-            Interactive(
-              Item(
-                Items.emerald,
-                name: TextComponent('Greet', color: Color.Green, bold: true),
-                lore: [
-                  TextComponent('Click to say Hello!', color: Color.Gray),
-                ],
-              ),
-              slot: Slot.chest(2, 4),
-              actions: [
+          ),
+          then: [
+            Execute.as(
+              Entity.All(distance: Range.to(8)),
+              children: [
                 Title(
                   Entity.Self(),
                   show: [TextComponent('Hello!', color: Color.Yellow)],
                 ),
+                click.set(kGuiGreet),
               ],
             ),
-            // Reset counter butonu
-            Interactive(
-              Item(
-                Items.redstone,
-                name: TextComponent('Reset counter',
-                    color: Color.Red, bold: true),
-                lore: [
-                  TextComponent('Sets your counter to 0', color: Color.Gray),
-                ],
-              ),
-              slot: Slot.chest(2, 6),
-              actions: [
+          ],
+        ),
+        // Reset (Slot 14) missing?
+        If(
+          Condition.not(
+            Condition.data(
+              Data.get(Location.here(), path: 'Items[{Slot:14b}]'),
+            ),
+          ),
+          then: [
+            Execute.as(
+              Entity.All(distance: Range.to(8)),
+              children: [
                 Score(Entity.Self(), 'counter').set(0),
                 Tellraw(
                   Entity.Self(),
@@ -170,36 +163,105 @@ class TemplateChestGui extends Widget {
                     TextComponent('Counter reset', color: Color.Aqua),
                   ],
                 ),
+                click.set(kGuiReset),
               ],
             ),
           ],
-          fillEmptySlots: true,
-          placeholder: Item(
-            Items.gray_stained_glass_pane,
-            name: TextComponent(' '),
-          ),
+        ),
+
+        Comment('Refill chest GUI every tick (1.20.1 item NBT)'),
+        Data.merge(
+          Location.here(),
+          nbt: {
+            'Items': [
+              // Title sign – row1 col5 → Slot 4
+              {
+                'Slot': 4,
+                'id': 'minecraft:oak_sign',
+                'Count': 1,
+                'tag': {
+                  'display': {
+                    'Name':
+                        '{"text":"Template Pack Menu","color":"gold","bold":true}',
+                  },
+                },
+              },
+              // Greet – Slot 12
+              {
+                'Slot': 12,
+                'id': 'minecraft:emerald',
+                'Count': 1,
+                'tag': {
+                  'display': {
+                    'Name':
+                        '{"text":"Greet","color":"green","bold":true}',
+                    'Lore': [
+                      '{"text":"Click to say Hello!","color":"gray"}',
+                    ],
+                  },
+                },
+              },
+              // Reset – Slot 14
+              {
+                'Slot': 14,
+                'id': 'minecraft:redstone',
+                'Count': 1,
+                'tag': {
+                  'display': {
+                    'Name':
+                        '{"text":"Reset counter","color":"red","bold":true}',
+                    'Lore': [
+                      '{"text":"Sets your counter to 0","color":"gray"}',
+                    ],
+                  },
+                },
+              },
+              // Gray panes – row 1
+              for (final s in [0, 1, 2, 3, 5, 6, 7, 8])
+                {
+                  'Slot': s,
+                  'id': 'minecraft:gray_stained_glass_pane',
+                  'Count': 1,
+                  'tag': {
+                    'display': {'Name': '{"text":" "}'},
+                  },
+                },
+              // Gray panes – row 2 (except 12, 14)
+              for (final s in [9, 10, 11, 13, 15, 16, 17])
+                {
+                  'Slot': s,
+                  'id': 'minecraft:gray_stained_glass_pane',
+                  'Count': 1,
+                  'tag': {
+                    'display': {'Name': '{"text":" "}'},
+                  },
+                },
+              // Gray panes – row 3
+              for (final s in [18, 19, 20, 21, 22, 23, 24, 25, 26])
+                {
+                  'Slot': s,
+                  'id': 'minecraft:gray_stained_glass_pane',
+                  'Count': 1,
+                  'tag': {
+                    'display': {'Name': '{"text":" "}'},
+                  },
+                },
+            ],
+          },
         ),
       ],
-      placeholder: Item(
-        Items.light_gray_stained_glass_pane,
-        name: TextComponent(' '),
-      ),
-      countScore: 'gui_count',
-      pageScore: 'gui_page',
-      path: 'gui',
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// SETUP: /function example:setup_gui  → mevcut konumda chest + marker
+// SETUP: /function example:setup_gui
 // ---------------------------------------------------------------------------
 class SetupChestGui extends Widget {
   @override
   Widget generate(Context context) {
     return Group(
       children: [
-        // Marker (görünmez armor stand)
         ArmorStand(
           Location.here(),
           tags: ['tp_gui'],
@@ -209,7 +271,6 @@ class SetupChestGui extends Widget {
           name: TextComponent('Template GUI', color: Color.Gold),
           nameVisible: false,
         ),
-        // Chest bloğu
         SetBlock(
           Blocks.chest,
           location: Location.here(),
@@ -221,8 +282,10 @@ class SetupChestGui extends Widget {
         Tellraw(
           Entity.Self(),
           show: [
-            TextComponent('Chest GUI placed here. Open the chest!',
-                color: Color.Green),
+            TextComponent(
+              'Chest GUI placed. Open the chest and click Greet / Reset.',
+              color: Color.Green,
+            ),
           ],
         ),
       ],
@@ -231,7 +294,7 @@ class SetupChestGui extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// Diğer showcase widget'ları (önceki gibi)
+// Showcase widgets
 // ---------------------------------------------------------------------------
 class WelcomeMessage extends Widget {
   final String playerName;
