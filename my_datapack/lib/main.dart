@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Template Pack – pure objD (MAXIMUM FEATURE SHOWCASE) – FIXED
+// Template Pack – pure objD (MAXIMUM FEATURE SHOWCASE) – FULL FIXED
 // Target: Minecraft 1.20.1 (pack_format 15)
 // No objd_gui, no @p, no tellraw menu
 // ---------------------------------------------------------------------------
@@ -109,9 +109,9 @@ class ForLoad extends Widget {
           'message': 'Hello from Storage!',
         }),
 
-        // Bossbar (correct API)
+        // Bossbar – name MUST be non-null (objD null-check in generate)
         Bossbar('template:main', name: 'Template Pack'),
-        Bossbar('template:main').set(
+        Bossbar('template:main', name: 'Template Pack').set(
           nameTexts: [
             TextComponent('Template Pack', color: Color.Gold, bold: true),
           ],
@@ -145,9 +145,9 @@ class ForLoad extends Widget {
               show: [TextComponent('Welcome back!', color: Color.Green)]),
         ),
 
-        // VersionCheck (correct API)
+        // VersionCheck
         VersionCheck(
-          1, // current pack version
+          1,
           onUpdate: [Log('Thank you for updating the pack!')],
           onDowndate: [Log('Notice: You installed an older version')],
         ),
@@ -190,7 +190,7 @@ class ForMain extends Widget {
                       color: Color.Aqua),
                 ]),
                 ticks.set(0),
-                Bossbar('template:main').set(value: 50),
+                Bossbar('template:main', name: 'Template Pack').set(value: 50),
               ],
             ),
           ],
@@ -204,8 +204,9 @@ class ForMain extends Widget {
 
         // Trigger handling
         Execute.as(
-          Entity.All(
-              scores: [Score(Entity.Self(), 'trigger_val').matchesRange(Range.from(1))]),
+          Entity.All(scores: [
+            Score(Entity.Self(), 'trigger_val').matchesRange(Range.from(1))
+          ]),
           children: [
             Tellraw(Entity.Self(), show: [
               TextComponent('You triggered value: ', color: Color.Yellow),
@@ -236,8 +237,8 @@ class ChestGuiTick extends Widget {
 
         // Slot 12 – Greet
         If(
-          Condition.not(
-              Condition.data(Data.get(Location.here(), path: 'Items[{Slot:12b}]'))),
+          Condition.not(Condition.data(
+              Data.get(Location.here(), path: 'Items[{Slot:12b}]'))),
           then: [
             Execute.as(Entity.All(distance: Range.to(8)), children: [
               Title(Entity.Self(),
@@ -252,8 +253,8 @@ class ChestGuiTick extends Widget {
 
         // Slot 14 – Reset
         If(
-          Condition.not(
-              Condition.data(Data.get(Location.here(), path: 'Items[{Slot:14b}]'))),
+          Condition.not(Condition.data(
+              Data.get(Location.here(), path: 'Items[{Slot:14b}]'))),
           then: [
             Execute.as(Entity.All(distance: Range.to(8)), children: [
               Score(Entity.Self(), 'counter').set(0),
@@ -267,8 +268,8 @@ class ChestGuiTick extends Widget {
 
         // Slot 10 – Random
         If(
-          Condition.not(
-              Condition.data(Data.get(Location.here(), path: 'Items[{Slot:10b}]'))),
+          Condition.not(Condition.data(
+              Data.get(Location.here(), path: 'Items[{Slot:10b}]'))),
           then: [
             Execute.as(Entity.All(distance: Range.to(8)), children: [
               File.execute('showcase/random', create: false),
@@ -279,8 +280,8 @@ class ChestGuiTick extends Widget {
 
         // Slot 16 – Raycast
         If(
-          Condition.not(
-              Condition.data(Data.get(Location.here(), path: 'Items[{Slot:16b}]'))),
+          Condition.not(Condition.data(
+              Data.get(Location.here(), path: 'Items[{Slot:16b}]'))),
           then: [
             Execute.as(Entity.All(distance: Range.to(8)), children: [
               File.execute('showcase/raycast', create: false),
@@ -645,14 +646,9 @@ class AttributeShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Comment('Attribute modifier'),
-        Attribute.add(
-          Entity.Self(),
-          Attributes.movement_speed,
-          uuid: 'template-speed-boost',
-          value: 0.1,
-          name: 'template_speed',
-          modifyType: AttributeModifier.add,
+        Comment('Attribute modifier (raw command for max compatibility)'),
+        Command(
+          'attribute @s minecraft:generic.movement_speed modifier add 00000000-0000-0000-0000-000000000001 template_speed 0.1 add',
         ),
         Tellraw(Entity.Self(), show: [
           TextComponent('Movement speed increased temporarily',
@@ -720,8 +716,8 @@ class BossbarShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        Bossbar('template:main').set(value: 75),
-        Bossbar('template:main').show(Entity.Self()),
+        Bossbar('template:main', name: 'Template Pack').set(value: 75),
+        Bossbar('template:main', name: 'Template Pack').show(Entity.Self()),
         Tellraw(Entity.Self(), show: [
           TextComponent('Bossbar updated & shown', color: Color.Gold),
         ]),
@@ -793,10 +789,9 @@ class Uninstall extends Widget {
         Scoreboard.remove('trigger_val'),
         Team.empty('template_red'),
         Team.empty('template_blue'),
-        // Team.remove does not exist → use Command
         Command('team remove template_red'),
         Command('team remove template_blue'),
-        Bossbar('template:main').remove(),
+        Bossbar('template:main', name: 'Template Pack').remove(),
         Kill(Entity(tags: ['tp_gui'])),
         Kill(Entity(tags: ['tp_marker'])),
         Kill(Entity(tags: ['tp_display'])),
