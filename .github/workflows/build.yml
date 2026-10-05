@@ -1,0 +1,91 @@
+name: Build & Publish Datapack
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']          # e.g. v1.0.0, v1.2.3-beta
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:       # Manual runs
+
+permissions:
+  contents: write          # Required to create releases
+
+env:
+  DART_ENTRY: main.dart    # Entry point (change if needed)
+  PACK_NAME: Template-Pack # Output zip name prefix
+
+jobs:
+  # ─── Analyze + build ────────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Analyze
+        run: dart analyze --fatal-infos
+
+      - name: Build datapack (production zip)
+        run: |
+          # --prod strips comments/newlines and produces a zip
+          # With Project name "Template Pack", output is usually ./Template Pack.zip
+          dart run "$DART_ENTRY" --prod
+
+          # Alternative if you use a custom flag:
+          # dart run "$DART_ENTRY" --export-zip
+
+      - name: Locate and rename zip
+        id: pack
+        run: |
+          ZIP=$(find . -maxdepth 2 -type f -name '*.zip' | head -n1)
+          if [ -z "$ZIP" ]; then
+            echo "::error::Datapack zip not found"
+            ls -la
+            exit 1
+          fi
+          OUT="${PACK_NAME}-${{ github.sha }}.zip"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            OUT="${PACK_NAME}-${GITHUB_REF_NAME}.zip"
+          fi
+          cp "$ZIP" "$OUT"
+          echo "zip=$OUT" >> "$GITHUB_OUTPUT"
+          echo "Found: $ZIP → $OUT"
+          ls -lh "$OUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: datapack
+          path: ${{ steps.pack.outputs.zip }}
+          retention-days: 14
+
+  # ─── Release only on tag pushes ─────────────────────────────────
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: datapack
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            *.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}  # v1.0.0-beta → prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
