@@ -1,56 +1,50 @@
 // ---------------------------------------------------------------------------
-// AI DISCLOSURE: This file was generated/extended with AI assistance
-// (Claude, Anthropic) in Oct 2026, based on the objD 0.4.7 API docs
-// (https://pub.dev/documentation/objd/latest/). It has NOT been compiled or
-// tested by the AI. Review it and run `dart analyze` before committing.
+// Template Pack – pure objD
+// Target: Minecraft 1.20.1 (pack_format 15)
+// No objd_gui, no @p, no tellraw menu
 // ---------------------------------------------------------------------------
 import 'package:objd/core.dart';
 
-// NOTE: 48 = Minecraft 1.21. Update this to your target version.
-const int kPackFormat = 48;
+const int kPackFormat = 15; // 1.20 – 1.20.1
 const String kNamespace = 'example';
 
-// Trigger objective name = Scoreboard.prefix ('tp_') + 'menu'.
-// If you change the prefix, update this as well.
-const String kMenuObj = 'tp_menu';
+const int kGuiGreet = 1;
+const int kGuiReset = 2;
 
 Project buildProject() => Project(
       name: 'Template Pack',
-      version: 21,
-      target: './',
-      description: 'Template Pack - objD feature showcase',
+      version: 20,
+      target: './build/',
+      description: 'Template Pack - objD showcase (MC 1.20.1, Chest GUI)',
       packFormat: kPackFormat,
-      // supportedFormats: [48, 57], // optional: support multiple formats
       generate: Pack(
         name: kNamespace,
         load: File('load', child: ForLoad()),
         main: File('main', child: ForMain()),
-        // Extra function files (e.g. called with /function example:welcome)
         files: [
           File('welcome', child: WelcomeMessage(playerName: 'Player')),
           File('showcase/loops', child: LoopShowcase(count: 5)),
           File('showcase/math', child: ScoreMathShowcase()),
+          File('setup_gui', child: SetupChestGui()),
         ],
       ),
     );
 
 void main(List<String> args) {
-  // Automatic prefix for all scoreboard names
   Scoreboard.prefix = 'tp_';
-
   final prj = buildProject();
-
-  // Optional: export as a zip instead of writing files to disk
-  if (args.contains('--export-zip')) {
-    saveAsZip(getAllFiles(prj, args), 'template_pack.zip');
+  if (args.contains('--export-zip') || args.contains('--prod')) {
+    final files = getAllFiles(prj, args);
+    final out =
+        args.contains('--prod') ? 'Template Pack.zip' : 'template_pack.zip';
+    saveAsZip(files, out);
     return;
   }
-
   createProject(prj, args);
 }
 
 // ---------------------------------------------------------------------------
-// LOAD: runs once on /reload or when the world loads
+// LOAD
 // ---------------------------------------------------------------------------
 class ForLoad extends Widget {
   @override
@@ -58,13 +52,9 @@ class ForLoad extends Widget {
     return Group(
       children: [
         Log('Template Pack loaded successfully!'),
-
-        // Scoreboard variants
         Scoreboard('config'),
         Scoreboard('counter'),
-        Scoreboard.trigger('menu'),
-
-        // Detect player join / rejoin
+        Scoreboard('gui_click'),
         PlayerJoin(
           then: Tellraw(
             Entity.Self(),
@@ -83,20 +73,17 @@ class ForLoad extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// MAIN: runs every tick (1/20 s)
+// MAIN (every tick)
 // ---------------------------------------------------------------------------
 class ForMain extends Widget {
   @override
   Widget generate(Context context) {
     final ticks = Score(Entity.Self(), 'counter');
-
     return Group(
       children: [
-        Comment('Commands executing every tick (1/20s)'),
-
-        // Increase the counter for each player, send a message every 200 ticks (10 s)
+        Comment('Tick logic'),
         Execute.as(
-          Entity.Player(),
+          Entity.All(),
           children: [
             ticks.add(1),
             If(
@@ -104,93 +91,200 @@ class ForMain extends Widget {
               then: [
                 Tellraw(
                   Entity.Self(),
-                  show: [TextComponent('10 seconds passed', color: Color.Aqua)],
+                  show: [
+                    TextComponent('10 seconds passed', color: Color.Aqua),
+                  ],
                 ),
                 ticks.set(0),
-              ],
-              orElse: [
-                // Example orElse branch; can be left out
-                Comment('counter has not reached 200 yet'),
               ],
             ),
           ],
         ),
-
-        // Clickable chat menu (opened with /trigger tp_menu)
-        GuiMenu(),
+        // Chest GUI at every armor_stand tagged tp_gui
+        Execute.at(
+          Entity(type: Entities.armor_stand, tags: ['tp_gui']),
+          children: [
+            ChestGuiTick(),
+          ],
+        ),
       ],
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// GUI: clickable chat menu (trigger based)
-// The player types `/trigger tp_menu` -> menu opens -> clicks a button.
-// Buttons run `/trigger tp_menu set N`; the N values are handled below.
+// CHEST GUI (1.20.1 NBT: id + Count + tag.display – no components)
+// Detect click = button item missing from slot, then refill every tick
 // ---------------------------------------------------------------------------
-class GuiMenu extends Widget {
-  static const int open = 1;
-  static const int greet = 2;
-  static const int resetCounter = 3;
-
-  TextComponent _button(String label, int value, Color color) {
-    return TextComponent(
-      '[ $label ]',
-      color: color,
-      bold: true,
-      clickEvent:
-          TextClickEvent.run_command(Command('trigger $kMenuObj set $value')),
-    );
-  }
-
+class ChestGuiTick extends Widget {
   @override
   Widget generate(Context context) {
-    final menu = Score(Entity.Self(), 'menu');
+    final click = Score(Entity.Self(), 'gui_click');
 
+    // container slots: row2 col4 = 12, row2 col6 = 14
     return Group(
       children: [
-        // Triggers get disabled after use, so re-enable them every tick
-        Command('scoreboard players enable @a $kMenuObj'),
-
-        Execute.as(
-          Entity.Player(),
-          children: [
-            If(
-              menu.matches(open),
-              then: [
-                Tellraw(
-                  Entity.Self(),
-                  show: [
-                    TextComponent('=== Template Pack Menu ===\n',
-                        color: Color.Gold, bold: true),
-                    _button('Greet', greet, Color.Green),
-                    TextComponent(' '),
-                    _button('Reset counter', resetCounter, Color.Red),
-                  ],
-                ),
-                menu.set(0),
-              ],
+        Comment('Detect button clicks (item removed from slot)'),
+        // Greet (Slot 12) missing?
+        If(
+          Condition.not(
+            Condition.data(
+              Data.get(Location.here(), path: 'Items[{Slot:12b}]'),
             ),
-            If(
-              menu.matches(greet),
-              then: [
+          ),
+          then: [
+            Execute.as(
+              Entity.All(distance: Range.to(8)),
+              children: [
                 Title(
                   Entity.Self(),
                   show: [TextComponent('Hello!', color: Color.Yellow)],
                 ),
-                menu.set(0),
+                click.set(kGuiGreet),
               ],
             ),
-            If(
-              menu.matches(resetCounter),
-              then: [
+          ],
+        ),
+        // Reset (Slot 14) missing?
+        If(
+          Condition.not(
+            Condition.data(
+              Data.get(Location.here(), path: 'Items[{Slot:14b}]'),
+            ),
+          ),
+          then: [
+            Execute.as(
+              Entity.All(distance: Range.to(8)),
+              children: [
                 Score(Entity.Self(), 'counter').set(0),
                 Tellraw(
                   Entity.Self(),
-                  show: [TextComponent('Counter reset', color: Color.Aqua)],
+                  show: [
+                    TextComponent('Counter reset', color: Color.Aqua),
+                  ],
                 ),
-                menu.set(0),
+                click.set(kGuiReset),
               ],
+            ),
+          ],
+        ),
+
+        Comment('Refill chest GUI every tick (1.20.1 item NBT)'),
+        Data.merge(
+          Location.here(),
+          nbt: {
+            'Items': [
+              // Title sign – row1 col5 → Slot 4
+              {
+                'Slot': 4,
+                'id': 'minecraft:oak_sign',
+                'Count': 1,
+                'tag': {
+                  'display': {
+                    'Name':
+                        '{"text":"Template Pack Menu","color":"gold","bold":true}',
+                  },
+                },
+              },
+              // Greet – Slot 12
+              {
+                'Slot': 12,
+                'id': 'minecraft:emerald',
+                'Count': 1,
+                'tag': {
+                  'display': {
+                    'Name':
+                        '{"text":"Greet","color":"green","bold":true}',
+                    'Lore': [
+                      '{"text":"Click to say Hello!","color":"gray"}',
+                    ],
+                  },
+                },
+              },
+              // Reset – Slot 14
+              {
+                'Slot': 14,
+                'id': 'minecraft:redstone',
+                'Count': 1,
+                'tag': {
+                  'display': {
+                    'Name':
+                        '{"text":"Reset counter","color":"red","bold":true}',
+                    'Lore': [
+                      '{"text":"Sets your counter to 0","color":"gray"}',
+                    ],
+                  },
+                },
+              },
+              // Gray panes – row 1
+              for (final s in [0, 1, 2, 3, 5, 6, 7, 8])
+                {
+                  'Slot': s,
+                  'id': 'minecraft:gray_stained_glass_pane',
+                  'Count': 1,
+                  'tag': {
+                    'display': {'Name': '{"text":" "}'},
+                  },
+                },
+              // Gray panes – row 2 (except 12, 14)
+              for (final s in [9, 10, 11, 13, 15, 16, 17])
+                {
+                  'Slot': s,
+                  'id': 'minecraft:gray_stained_glass_pane',
+                  'Count': 1,
+                  'tag': {
+                    'display': {'Name': '{"text":" "}'},
+                  },
+                },
+              // Gray panes – row 3
+              for (final s in [18, 19, 20, 21, 22, 23, 24, 25, 26])
+                {
+                  'Slot': s,
+                  'id': 'minecraft:gray_stained_glass_pane',
+                  'Count': 1,
+                  'tag': {
+                    'display': {'Name': '{"text":" "}'},
+                  },
+                },
+            ],
+          },
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SETUP: /function example:setup_gui
+// ---------------------------------------------------------------------------
+class SetupChestGui extends Widget {
+  @override
+  Widget generate(Context context) {
+    return Group(
+      children: [
+        ArmorStand(
+          Location.here(),
+          tags: ['tp_gui'],
+          invisible: true,
+          marker: true,
+          basePlate: false,
+          name: TextComponent('Template GUI', color: Color.Gold),
+          nameVisible: false,
+        ),
+        SetBlock(
+          Blocks.chest,
+          location: Location.here(),
+          nbt: {
+            'CustomName':
+                '{"text":"Template Pack Menu","color":"gold","bold":true}',
+          },
+        ),
+        Tellraw(
+          Entity.Self(),
+          show: [
+            TextComponent(
+              'Chest GUI placed. Open the chest and click Greet / Reset.',
+              color: Color.Green,
             ),
           ],
         ),
@@ -200,7 +294,7 @@ class GuiMenu extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// Custom widget with parameters
+// Showcase widgets
 // ---------------------------------------------------------------------------
 class WelcomeMessage extends Widget {
   final String playerName;
@@ -223,9 +317,6 @@ class WelcomeMessage extends Widget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Loops: For + Builder
-// ---------------------------------------------------------------------------
 class LoopShowcase extends Widget {
   final int count;
   LoopShowcase({required this.count});
@@ -234,7 +325,6 @@ class LoopShowcase extends Widget {
   Widget generate(Context context) {
     return Group(
       children: [
-        // Similar to objD's own README example: generate n commands
         For(
           from: 0,
           to: count,
@@ -243,8 +333,6 @@ class LoopShowcase extends Widget {
             show: [TextComponent('Loop step $i')],
           ),
         ),
-
-        // Builder: plain Dart logic inside the widget tree
         Builder((ctx) {
           final doubled = count * 2;
           return Log('Total steps x2 = $doubled');
@@ -254,40 +342,20 @@ class LoopShowcase extends Widget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Score operations, operators and conditions
-// ---------------------------------------------------------------------------
 class ScoreMathShowcase extends Widget {
   @override
   Widget generate(Context context) {
     final a = Score(Entity.Self(), 'config');
     final b = Score(Entity.Self(), 'counter');
-
     return Group(
       children: [
         a.set(10),
         b.set(3),
-        a.addScore(b), // a += b
-        a.multiplyByScore(b), // a *= b
-        If(
-          a > b,
-          then: [Log('a > b')],
-        ),
-        If.not(
-          a.matches(0),
-          then: [Log('a is not zero')],
-        ),
+        a.addScore(b),
+        a.multiplyByScore(b),
+        If(a > b, then: [Log('a > b')]),
+        If.not(a.matches(0), then: [Log('a is not zero')]),
       ],
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Code generation (optional, requires objd_gen + build_runner):
-//   @Wdg      -> generates a Widget class from a function
-//   @Func()   -> generates a Minecraft function file from a Widget variable
-//   @Pck()    -> generates a Pack widget from a File list
-//   @Prj()    -> generates the main() function automatically
-// To use them, import 'package:objd/annotations.dart' and run
-// `dart run build_runner build`.
-// ---------------------------------------------------------------------------
