@@ -12,8 +12,8 @@ permissions:
   contents: write
 
 env:
-  PROJECT_DIR: my_datapack   # Directory containing pubspec.yaml
-  DART_ENTRY: main.dart      # Entry point relative to PROJECT_DIR
+  PROJECT_DIR: my_datapack
+  DART_ENTRY: lib/main.dart   # ← was main.dart (wrong)
   PACK_NAME: Template-Pack
 
 jobs:
@@ -39,16 +39,20 @@ jobs:
 
       - name: Build datapack (production zip)
         run: |
+          set -e
+          echo "Entry: $DART_ENTRY"
+          ls -la lib/ || true
+          test -f "$DART_ENTRY" || { echo "::error::Missing $DART_ENTRY"; exit 1; }
           dart run "$DART_ENTRY" --prod
-          # Alternative: dart run "$DART_ENTRY" --export-zip
 
       - name: Locate and rename zip
         id: pack
         run: |
-          ZIP=$(find . -maxdepth 2 -type f -name '*.zip' | head -n1)
+          set -e
+          ZIP=$(find . -maxdepth 3 -type f -name '*.zip' | head -n1)
           if [ -z "$ZIP" ]; then
             echo "::error::Datapack zip not found in ${PROJECT_DIR}"
-            ls -la
+            find . -type f | head -50
             exit 1
           fi
           OUT="${PACK_NAME}-${{ github.sha }}.zip"
@@ -56,7 +60,6 @@ jobs:
             OUT="${PACK_NAME}-${GITHUB_REF_NAME}.zip"
           fi
           cp "$ZIP" "$OUT"
-          # Absolute path so the upload step (no working-directory) can find it
           echo "zip=${PROJECT_DIR}/${OUT}" >> "$GITHUB_OUTPUT"
           echo "Found: $ZIP → $OUT"
           ls -lh "$OUT"
