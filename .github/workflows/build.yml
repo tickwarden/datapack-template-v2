@@ -3,22 +3,25 @@ name: Build & Publish Datapack
 on:
   push:
     branches: [main, master]
-    tags: ['v*']          # e.g. v1.0.0, v1.2.3-beta
+    tags: ['v*']
   pull_request:
     branches: [main, master]
-  workflow_dispatch:       # Manual runs
+  workflow_dispatch:
 
 permissions:
-  contents: write          # Required to create releases
+  contents: write
 
 env:
-  DART_ENTRY: main.dart    # Entry point (change if needed)
-  PACK_NAME: Template-Pack # Output zip name prefix
+  PROJECT_DIR: my_datapack   # Directory containing pubspec.yaml
+  DART_ENTRY: main.dart      # Entry point relative to PROJECT_DIR
+  PACK_NAME: Template-Pack
 
 jobs:
-  # ─── Analyze + build ────────────────────────────────────────────
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.PROJECT_DIR }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -36,19 +39,15 @@ jobs:
 
       - name: Build datapack (production zip)
         run: |
-          # --prod strips comments/newlines and produces a zip
-          # With Project name "Template Pack", output is usually ./Template Pack.zip
           dart run "$DART_ENTRY" --prod
-
-          # Alternative if you use a custom flag:
-          # dart run "$DART_ENTRY" --export-zip
+          # Alternative: dart run "$DART_ENTRY" --export-zip
 
       - name: Locate and rename zip
         id: pack
         run: |
           ZIP=$(find . -maxdepth 2 -type f -name '*.zip' | head -n1)
           if [ -z "$ZIP" ]; then
-            echo "::error::Datapack zip not found"
+            echo "::error::Datapack zip not found in ${PROJECT_DIR}"
             ls -la
             exit 1
           fi
@@ -57,7 +56,8 @@ jobs:
             OUT="${PACK_NAME}-${GITHUB_REF_NAME}.zip"
           fi
           cp "$ZIP" "$OUT"
-          echo "zip=$OUT" >> "$GITHUB_OUTPUT"
+          # Absolute path so the upload step (no working-directory) can find it
+          echo "zip=${PROJECT_DIR}/${OUT}" >> "$GITHUB_OUTPUT"
           echo "Found: $ZIP → $OUT"
           ls -lh "$OUT"
 
@@ -68,7 +68,6 @@ jobs:
           path: ${{ steps.pack.outputs.zip }}
           retention-days: 14
 
-  # ─── Release only on tag pushes ─────────────────────────────────
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
@@ -86,6 +85,6 @@ jobs:
             *.zip
           generate_release_notes: true
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}  # v1.0.0-beta → prerelease
+          prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
