@@ -1,12 +1,15 @@
 name: my_datapack
-description: A new objD datapack project.
+description: Template Pack - objD + objd_gui (MC 1.20.1)
 version: 1.0.0
+publish_to: none
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   objd: ^0.4.7
+  objd_gui: ^0.2.0
 
-dev_dependencies:
-  build_runner: ^2.4.0
+dependency_overrides:
+  # objd_gui 0.2.0 declares sdk <3.0.0; force for Dart 3 + objd 0.4.7
+  objd_gui: ^0.2.0

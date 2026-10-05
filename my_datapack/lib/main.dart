@@ -1,28 +1,20 @@
 // ---------------------------------------------------------------------------
-// Template Pack – pure objD (MAXIMUM FEATURE SHOWCASE) – FULL FIXED
+// Template Pack – objD + objd_gui
 // Target: Minecraft 1.20.1 (pack_format 15)
-// No objd_gui, no @p, no tellraw menu
+// No @p, no tellraw menu, no raw GUI commands
 // ---------------------------------------------------------------------------
 
 import 'package:objd/core.dart';
+import 'package:objd_gui/gui.dart';
 
-const int kPackFormat = 15; // 1.20 – 1.20.1
-const String kNamespace = 'template';
-
-// GUI button IDs
-const int kGuiGreet = 1;
-const int kGuiReset = 2;
-const int kGuiRandom = 3;
-const int kGuiRaycast = 4;
-const int kGuiStorage = 5;
-const int kGuiTeam = 6;
+const int kPackFormat = 15;
+const String kNamespace = 'example';
 
 Project buildProject() => Project(
       name: 'Template Pack',
       version: 20,
       target: './build/',
-      description:
-          'Ultimate pure objD Template Pack – MC 1.20.1 (Chest GUI + major features)',
+      description: 'Template Pack - objD + objd_gui (MC 1.20.1)',
       packFormat: kPackFormat,
       generate: Pack(
         name: kNamespace,
@@ -80,49 +72,6 @@ class ForLoad extends Widget {
         // Scoreboards
         Scoreboard('config'),
         Scoreboard('counter'),
-        Scoreboard('gui_click'),
-        Scoreboard('random'),
-        Scoreboard('ray_dist'),
-        Scoreboard('temp'),
-        Scoreboard.trigger('trigger_val'),
-
-        // Teams
-        Team.add(
-          'template_red',
-          color: Color.Red,
-          display: TextComponent('Template Red', color: Color.Red),
-          friendlyFire: false,
-          collision: ModifyTeam.never,
-        ),
-        Team.add(
-          'template_blue',
-          color: Color.Blue,
-          display: TextComponent('Template Blue', color: Color.Blue),
-          friendlyFire: false,
-          collision: ModifyTeam.never,
-        ),
-
-        // Global Storage
-        Storage('data').merge({
-          'initialized': true,
-          'version': 1,
-          'message': 'Hello from Storage!',
-        }),
-
-        // Bossbar – name MUST be non-null (objD null-check in generate)
-        Bossbar('template:main', name: 'Template Pack'),
-        Bossbar('template:main', name: 'Template Pack').set(
-          nameTexts: [
-            TextComponent('Template Pack', color: Color.Gold, bold: true),
-          ],
-          color: Color.Yellow,
-          style: 'progress',
-          max: 100,
-          value: 0,
-          visible: true,
-        ),
-
-        // Player join / rejoin
         PlayerJoin(
           then: Group(children: [
             Tellraw(Entity.Self(), show: [
@@ -175,9 +124,7 @@ class ForMain extends Widget {
 
     return Group(
       children: [
-        Comment('=== MAIN TICK ==='),
-
-        // Per-player counter every 10 seconds
+        Comment('Per-player tick counter'),
         Execute.as(
           Entity.All(),
           children: [
@@ -195,8 +142,7 @@ class ForMain extends Widget {
             ),
           ],
         ),
-
-        // Chest GUI tick
+        Comment('objd_gui chest module at each tp_gui marker'),
         Execute.at(
           Entity(type: Entities.armor_stand, tags: ['tp_gui']),
           children: [ChestGuiTick()],
@@ -208,14 +154,7 @@ class ForMain extends Widget {
             Score(Entity.Self(), 'trigger_val').matchesRange(Range.from(1))
           ]),
           children: [
-            Tellraw(Entity.Self(), show: [
-              TextComponent('You triggered value: ', color: Color.Yellow),
-              TextComponent.score(
-                Score(Entity.Self(), 'trigger_val'),
-                color: Color.Aqua,
-              ),
-            ]),
-            Score(Entity.Self(), 'trigger_val').set(0),
+            TemplateChestGui(),
           ],
         ),
       ],
@@ -224,160 +163,86 @@ class ForMain extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// CHEST GUI
+// CHEST GUI (objd_gui)
 // ---------------------------------------------------------------------------
-class ChestGuiTick extends Widget {
+class TemplateChestGui extends Widget {
   @override
   Widget generate(Context context) {
-    final click = Score(Entity.Self(), 'gui_click');
-
-    return Group(
-      children: [
-        Comment('Detect button clicks'),
-
-        // Slot 12 – Greet
-        If(
-          Condition.not(Condition.data(
-              Data.get(Location.here(), path: 'Items[{Slot:12b}]'))),
-          then: [
-            Execute.as(Entity.All(distance: Range.to(8)), children: [
-              Title(Entity.Self(),
-                  show: [TextComponent('Hello!', color: Color.Yellow)]),
-              Tellraw(Entity.Self(), show: [
-                TextComponent('Greet button clicked!', color: Color.Green)
-              ]),
-              click.set(kGuiGreet),
-            ]),
+    return GuiModule.chest(
+      Location.here(),
+      pages: [
+        GuiPage(
+          [
+            Placeholder(
+              slot: Slot.chest(1, 5),
+              item: Item(
+                Items.oak_sign,
+                count: 1,
+                name: TextComponent(
+                  'Template Pack Menu',
+                  color: Color.Gold,
+                  bold: true,
+                ),
+              ),
+            ),
+            Interactive(
+              Item(
+                Items.emerald,
+                count: 1,
+                name: TextComponent('Greet', color: Color.Green, bold: true),
+                lore: [
+                  TextComponent('Click to say Hello!', color: Color.Gray),
+                ],
+              ),
+              slot: Slot.chest(2, 4),
+              actions: [
+                Title(
+                  Entity.Self(),
+                  show: [TextComponent('Hello!', color: Color.Yellow)],
+                ),
+              ],
+            ),
+            Interactive(
+              Item(
+                Items.redstone,
+                count: 1,
+                name: TextComponent(
+                  'Reset counter',
+                  color: Color.Red,
+                  bold: true,
+                ),
+                lore: [
+                  TextComponent('Sets your counter to 0', color: Color.Gray),
+                ],
+              ),
+              slot: Slot.chest(2, 6),
+              actions: [
+                Score(Entity.Self(), 'counter').set(0),
+                Tellraw(
+                  Entity.Self(),
+                  show: [
+                    TextComponent('Counter reset', color: Color.Aqua),
+                  ],
+                ),
+              ],
+            ),
           ],
-        ),
-
-        // Slot 14 – Reset
-        If(
-          Condition.not(Condition.data(
-              Data.get(Location.here(), path: 'Items[{Slot:14b}]'))),
-          then: [
-            Execute.as(Entity.All(distance: Range.to(8)), children: [
-              Score(Entity.Self(), 'counter').set(0),
-              Tellraw(Entity.Self(), show: [
-                TextComponent('Counter reset!', color: Color.Aqua)
-              ]),
-              click.set(kGuiReset),
-            ]),
-          ],
-        ),
-
-        // Slot 10 – Random
-        If(
-          Condition.not(Condition.data(
-              Data.get(Location.here(), path: 'Items[{Slot:10b}]'))),
-          then: [
-            Execute.as(Entity.All(distance: Range.to(8)), children: [
-              File.execute('showcase/random', create: false),
-              click.set(kGuiRandom),
-            ]),
-          ],
-        ),
-
-        // Slot 16 – Raycast
-        If(
-          Condition.not(Condition.data(
-              Data.get(Location.here(), path: 'Items[{Slot:16b}]'))),
-          then: [
-            Execute.as(Entity.All(distance: Range.to(8)), children: [
-              File.execute('showcase/raycast', create: false),
-              click.set(kGuiRaycast),
-            ]),
-          ],
-        ),
-
-        Comment('Refill chest GUI every tick'),
-        Data.merge(
-          Location.here(),
-          nbt: {
-            'Items': [
-              {
-                'Slot': 4,
-                'id': 'minecraft:oak_sign',
-                'Count': 1,
-                'tag': {
-                  'display': {
-                    'Name':
-                        '{"text":"Template Pack Menu","color":"gold","bold":true}',
-                  },
-                },
-              },
-              {
-                'Slot': 10,
-                'id': 'minecraft:diamond',
-                'Count': 1,
-                'tag': {
-                  'display': {
-                    'Name':
-                        '{"text":"Random Score","color":"aqua","bold":true}',
-                    'Lore': [
-                      '{"text":"Gives you a random number","color":"gray"}'
-                    ],
-                  },
-                },
-              },
-              {
-                'Slot': 12,
-                'id': 'minecraft:emerald',
-                'Count': 1,
-                'tag': {
-                  'display': {
-                    'Name': '{"text":"Greet","color":"green","bold":true}',
-                    'Lore': [
-                      '{"text":"Click to say Hello!","color":"gray"}'
-                    ],
-                  },
-                },
-              },
-              {
-                'Slot': 14,
-                'id': 'minecraft:redstone',
-                'Count': 1,
-                'tag': {
-                  'display': {
-                    'Name':
-                        '{"text":"Reset counter","color":"red","bold":true}',
-                    'Lore': [
-                      '{"text":"Sets your counter to 0","color":"gray"}'
-                    ],
-                  },
-                },
-              },
-              {
-                'Slot': 16,
-                'id': 'minecraft:ender_pearl',
-                'Count': 1,
-                'tag': {
-                  'display': {
-                    'Name':
-                        '{"text":"Raycast Demo","color":"light_purple","bold":true}',
-                    'Lore': [
-                      '{"text":"Shoots a ray and places a block","color":"gray"}'
-                    ],
-                  },
-                },
-              },
-              for (final s in [
-                0, 1, 2, 3, 5, 6, 7, 8,
-                9, 11, 13, 15, 17,
-                18, 19, 20, 21, 22, 23, 24, 25, 26
-              ])
-                {
-                  'Slot': s,
-                  'id': 'minecraft:gray_stained_glass_pane',
-                  'Count': 1,
-                  'tag': {
-                    'display': {'Name': '{"text":" "}'},
-                  },
-                },
-            ],
-          },
+          fillEmptySlots: true,
+          placeholder: Item(
+            Items.gray_stained_glass_pane,
+            count: 1,
+            name: TextComponent(' '),
+          ),
         ),
       ],
+      placeholder: Item(
+        Items.light_gray_stained_glass_pane,
+        count: 1,
+        name: TextComponent(' '),
+      ),
+      countScore: 'gui_count',
+      pageScore: 'gui_page',
+      path: 'gui',
     );
   }
 }
@@ -436,7 +301,7 @@ class SetupMarker extends Widget {
 }
 
 // ---------------------------------------------------------------------------
-// SHOWCASE WIDGETS
+// Showcase
 // ---------------------------------------------------------------------------
 class WelcomeMessage extends Widget {
   final String playerName;
