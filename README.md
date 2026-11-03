@@ -1,106 +1,138 @@
 # datapack-template-v2
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tickwarden/datapack-template-v2?quickstart=1)
 
-A minimal [objD](https://pub.dev/packages/objd) template for writing Minecraft: Java Edition data packs in Dart instead of hand-written `.mcfunction` files. Works out of the box in GitHub Codespaces.
+A Dart/objD Minecraft Java datapack template with an `objd_gui` chest-GUI
+example. The **checked-in example**, not the separate scaffold defaults,
+currently sets `version: 20`, `packFormat: 15` and a description naming
+Minecraft **1.20.1**. The output and compatibility of the dependencies have
+not been independently verified in Minecraft.
+
+> **World safety:** `SetupChestGui` generates an armor-stand marker and a
+> `SetBlock` command for a chest at the execution position. Running the
+> generated setup function can replace an existing block and alter a world.
+> Use a backed-up disposable world and inspect generated commands first.
+> Do not use the example as evidence that arbitrary GUI code is safe.
 
 ## Repository layout
 
-```
-.
-├── install.sh              # Scaffolds a brand-new objD project
-├── .vscode/tasks.json      # VS Code build task (runs the generator)
-├── my_datapack/            # Ready-to-use example project
-│   ├── pubspec.yaml
-│   └── lib/main.dart       # Pack definition (load + main functions)
-├── LICENSE                 # Unlicense (public domain)
-└── .gitignore
-```
+| Path | Purpose |
+| --- | --- |
+| [`my_datapack/lib/main.dart`](my_datapack/lib/main.dart) | Checked-in `Project`, functions, scoreboard, showcase and GUI example. |
+| [`my_datapack/pubspec.yaml`](my_datapack/pubspec.yaml) | Dart SDK range and objD/objd_gui dependencies. |
+| [`install.sh`](install.sh) | Separate project scaffold with system and home-directory side effects. |
+| [`.vscode/tasks.json`](.vscode/tasks.json) | Pub Get, generator, analyzer and ZIP tasks. |
+| [`.devcontainer/`](.devcontainer/) | Dart/devcontainer image and automatic post-create commands. |
+| [`.github/workflows/build.yml`](.github/workflows/build.yml) | GitHub Actions build, artifact and tag-release configuration. |
 
-## Requirements
+## Requirements and dependency caveat
 
-- [Dart SDK](https://dart.dev/get-dart) 3.0 or newer (objD 0.4.7 requires Dart 3)
-- Linux/Debian-based environment for `install.sh` (Codespaces works). On other systems, install Dart manually and use the manual steps below.
+The example declares Dart `>=3.0.0 <4.0.0`, `objd: ^0.4.7` and
+`objd_gui: ^0.2.0`. The pubspec comments that `objd_gui` 0.2.0 declares an SDK
+constraint below 3.0.0 and uses a `dependency_overrides` entry. An override is
+not a compatibility guarantee: dependency resolution, analysis, generation
+and the target game version must be tested together. `pubspec.lock` is ignored,
+so a later resolution can differ from an earlier one.
 
-## Quick start
+The devcontainer takes Dart from `dart:3` and copies it into the universal
+container image. Its post-create command may add an `origin` remote if missing,
+sets global Git `push.autoSetupRemote` to `true`, fetches Dart dependencies and
+attempts global `objd_cli` activation. These are environment changes and
+network operations; inspect them before starting the container. The Codespaces
+badge is a convenience link, not a guarantee of available quota or a working
+build.
 
-```bash
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tickwarden/datapack-template-v2?quickstart=1)
+
+## Using the checked-in example
+
+After reviewing the code and dependency sources, the project documents this
+flow for an isolated development environment:
+
+```sh
 cd my_datapack
 dart pub get
 dart run lib/main.dart
 ```
 
-`dart run lib/main.dart` generates the data pack and **exits when done**. Run it again after every change to `lib/main.dart`.
+The entry point delegates to objD's `createProject` for normal arguments. The
+project specifies `target: './build/'`, namespace `example`, `packFormat: 15`
+and a `Template Pack` name. Confirm the actual generated paths and
+`pack.mcmeta` before copying anything into a world. The old `--clean` command
+is passed to the generator; its deletion scope has not been verified here, so
+do not run it against valuable files.
 
-> **Note:** You do not need `build_runner`. It only generates code for `objd_gen` annotations (`@Pck`, `@Fil`, ...), which this template does not use. `dart run build_runner watch` stays open forever and prints `wrote 0 outputs`; it does not build your data pack.
+For the two explicit ZIP branches in `main.dart`:
 
-To remove everything objD generated, run:
-
-```bash
-dart run lib/main.dart --clean
+```sh
+dart run lib/main.dart --export-zip  # requests template_pack.zip
+dart run lib/main.dart --prod        # requests Template Pack.zip
 ```
 
-## How `lib/main.dart` works
+They call `getAllFiles` and `saveAsZip`; review the library's output behavior
+and use a fresh disposable directory so existing files are not at risk. The
+checked-in VS Code task named `objD Watch` actually invokes the one-shot Dart
+entry point; it does not explicitly start a watcher. The `Zip Datapack` task
+assumes `my_datapack/Template Pack`, which may not match the configured
+`./build/` target: inspect the actual output before relying on that task.
+`build_runner watch` is not used by the checked-in entry point.
 
-```dart
-import 'package:objd/core.dart';
+## What the generated pack is intended to do
 
-void main(List<String> args) {
-  createProject(
-    Project(
-      name: 'example',          // output folder name
-      version: 21,              // Minecraft version (21 = 1.21)
-      generate: Pack(
-        name: 'example',        // data pack namespace
-        load: File('load', child: ForLoad()),   // runs on /reload
-        main: File('main', child: ForMain()),   // runs every tick
-      ),
-    ),
-    args,
-  );
-}
-```
+- `load`: emits a load message, initializes `config` and `counter`
+  scoreboards with `Scoreboard.prefix = 'tp_'`, and includes join/rejoin
+  messages.
+- `main`: advances a per-player counter, emits a message at 200 ticks and
+  evaluates the GUI module at armor stands tagged `tp_gui`.
+- `welcome`, `showcase/loops` and `showcase/math`: demonstrate text, tags,
+  looping and scoreboard operations. They change or report state when run.
+- `setup_gui`: requests an invisible marker armor stand and a chest at the
+  execution position, then reports the GUI setup. The chest GUI example
+  contains greeting and counter-reset actions.
 
-| Piece | Purpose |
-| --- | --- |
-| `Project` | Top-level container. Holds the output name, target Minecraft version and the pack to generate. |
-| `Pack` | One data pack. Its `name` is the namespace, so it must be lowercase without spaces. |
-| `File` | A `.mcfunction` file. `load` and `main` are registered automatically as the load and tick functions. |
-| `Widget` | Reusable building block. Subclass it and return commands from `generate(...)`. |
+These descriptions follow the Dart source; the exact emitted `.mcfunction`
+files and their in-game behavior were not independently tested. In particular,
+review selector behavior, block changes, generated objectives and any library
+side effects before installing. Preserve your world before `/reload` or
+function calls.
 
-`Log(...)` sends a chat message to all players (it does not write to the server console). `Comment(...)` writes a comment line into the function file.
+## Separate `install.sh` scaffold
 
-## Creating a new project with `install.sh`
+The script accepts `PROJECT_DIR`, `DATAPACK_NAME`, `NAMESPACE`,
+`MINECRAFT_VERSION` and `PACK_FORMAT`, with defaults `my_datapack`, `Template
+Pack`, `example`, `21` and `48`. It validates the directory, namespace, numeric
+version and format and refuses an already existing project directory. Since
+`my_datapack/` is already tracked, its default invocation in this checkout
+stops at that check.
 
-```bash
-chmod +x install.sh
-./install.sh [PROJECT_DIR] [DATAPACK_NAME] [NAMESPACE] [MINECRAFT_VERSION] [PACK_FORMAT]
-```
+**Important discrepancy:** although arguments 2–5 are parsed and some are
+validated, the current heredoc writes hard-coded `Template Pack`, `example`,
+`21` and `48` into the new `lib/main.dart`; the caller's corresponding values
+are not substituted. The scaffold is a separate simple example, not a copy of
+the checked-in 1.20.1 GUI project.
 
-| Argument | Default | Notes |
-| --- | --- | --- |
-| `PROJECT_DIR` | `my_datapack` | Must be a valid Dart package name (`[a-z][a-z0-9_]*`). Must not exist yet. |
-| `DATAPACK_NAME` | `Template Pack` | Used for `Project.name` and the load message. |
-| `NAMESPACE` | `example` | Lowercase letters, digits, `_`, `.`, `-`. |
-| `MINECRAFT_VERSION` | `21` | Accepts decimals such as `20.4`. |
-| `PACK_FORMAT` | `48` | `pack_format` for 1.21 / 1.21.1. |
+If run after that check, the script may use `sudo apt-get`, configure the Dart
+APT source and keyring, append to `~/.bashrc`, globally activate `objd_cli`,
+create files, fetch packages and run a test build. It warns and continues if
+that final test build fails. Inspect the script and use a fresh isolated
+machine before deciding to run it; this README change did not run it.
 
-The script installs the Dart SDK only if it is missing (inside the dev container it already is), activates `objd_cli`, creates the project, runs `dart pub get` and finishes with a test build. The default directory is `my_datapack` because `my_datapack/` already exists in this repository.
+## CI and verification limits
 
-## Installing the data pack in Minecraft
+The Actions workflow runs on pull requests and pushes to `main`/`master`, tag
+pushes matching `v*`, and manual dispatch. Its build job resolves Dart
+packages, runs `dart analyze --fatal-infos`, invokes `--prod`, locates a ZIP and
+uploads an artifact. A separate release job is conditional on a `v*` tag and
+can create a GitHub release; the workflow declares `contents: write`. Those
+are workflow definitions, not a claim that any particular run succeeded.
 
-Copy the generated folder (the one containing `pack.mcmeta`) into `<world>/datapacks/`, then run `/reload` in-game. On a successful load you should see the message from `ForLoad` in chat.
+For this documentation change the source was inspected, but Dart, dependency
+resolution, VS Code tasks, the scaffold, GitHub Actions and Minecraft were not
+run locally. Confirm folder names, pack metadata and generated output for the
+specific Minecraft version rather than relying on an untested automatic
+conversion between versions.
 
-## Known limitations
+## Resources and license
 
-- **Minecraft 1.21 folder names.** Starting with 1.21 the `functions/` folder was renamed to `function/` (and similarly for tag folders). objD 0.4.7 was released in late 2023 for 1.20.4, so it may still write `functions/`. After the first run, inspect `data/<namespace>/`. If you see `functions/` and your functions do not load in 1.21+, rename the folders or target 1.20.4 (`version: 20.4`).
-- **Pack format.** objD derives `pack_format` from `version`. Check the generated `pack.mcmeta` and make sure it matches your Minecraft version.
-- **Generated output is git-ignored** only for the `datapack/` folder (see `.gitignore`). Check where objD writes its output on your machine before committing.
-
-## Resources
-
-- [objD on pub.dev](https://pub.dev/packages/objd)
-- [objD documentation](https://objd.stevertus.com/guide/)
-
-## License
-
-[Unlicense](LICENSE): public domain, use it for anything.
+- [objD package](https://pub.dev/packages/objd) and
+  [objD documentation](https://objd.stevertus.com/guide/).
+- [Unlicense](LICENSE); refer to the file for its public-domain dedication and
+  warranty disclaimer.
